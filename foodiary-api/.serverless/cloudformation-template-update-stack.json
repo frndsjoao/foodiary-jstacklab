@@ -1,0 +1,1368 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "The AWS CloudFormation template for this Serverless application",
+  "Resources": {
+    "SigninLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/foodiary-api-dev-signin"
+      }
+    },
+    "SignupLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/foodiary-api-dev-signup"
+      }
+    },
+    "MeLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/foodiary-api-dev-me"
+      }
+    },
+    "CreateMealLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/foodiary-api-dev-createMeal"
+      }
+    },
+    "ListMealsLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/foodiary-api-dev-listMeals"
+      }
+    },
+    "GetMealByIdLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/foodiary-api-dev-getMealById"
+      }
+    },
+    "FileUploadedEventLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/foodiary-api-dev-fileUploadedEvent"
+      }
+    },
+    "ProcessMealLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/foodiary-api-dev-processMeal"
+      }
+    },
+    "IamRoleLambdaExecution": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "lambda.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": {
+              "Fn::Join": [
+                "-",
+                [
+                  "foodiary-api",
+                  "dev",
+                  "lambda"
+                ]
+              ]
+            },
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:CreateLogGroup",
+                    "logs:TagResource"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/foodiary-api-dev*:*"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/foodiary-api-dev*:*:*"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:PutObject",
+                    "s3:GetObject"
+                  ],
+                  "Resource": {
+                    "Fn::Sub": "${UploadsBucket.Arn}/*"
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "sqs:SendMessage"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "MealsQueue",
+                      "Arn"
+                    ]
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "sqs:ReceiveMessage",
+                    "sqs:DeleteMessage",
+                    "sqs:GetQueueAttributes"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "MealsQueue",
+                        "Arn"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "Path": "/",
+        "RoleName": {
+          "Fn::Join": [
+            "-",
+            [
+              "foodiary-api",
+              "dev",
+              {
+                "Ref": "AWS::Region"
+              },
+              "lambdaRole"
+            ]
+          ]
+        }
+      }
+    },
+    "SigninLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "serverless-framework-deployments-us-east-1-6036bb93-3f12",
+          "S3Key": "serverless/foodiary-api/dev/1753055666708-2025-07-20T23:54:26.708Z/foodiary-api-signin.zip"
+        },
+        "Handler": "src/functions/signin.handler",
+        "Runtime": "nodejs22.x",
+        "FunctionName": "foodiary-api-dev-signin",
+        "MemorySize": 1024,
+        "Timeout": 6,
+        "Architectures": [
+          "arm64"
+        ],
+        "Environment": {
+          "Variables": {
+            "DATABASE_URL": "postgresql://neondb_owner:npg_Bm0pKlcyP7Wv@ep-small-pine-ad95pm8d-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require",
+            "JWT_SECRET": "o8v4um84eyv5a485wm8pcw4vway8mbawm48m4wvm4",
+            "OPENAI_API_KEY": "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",
+            "BUCKET_NAME": {
+              "Ref": "UploadsBucket"
+            },
+            "MEALS_QUEUE": {
+              "Ref": "MealsQueue"
+            }
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "SigninLogGroup"
+      ]
+    },
+    "SignupLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "serverless-framework-deployments-us-east-1-6036bb93-3f12",
+          "S3Key": "serverless/foodiary-api/dev/1753055666708-2025-07-20T23:54:26.708Z/foodiary-api-signup.zip"
+        },
+        "Handler": "src/functions/signup.handler",
+        "Runtime": "nodejs22.x",
+        "FunctionName": "foodiary-api-dev-signup",
+        "MemorySize": 1024,
+        "Timeout": 6,
+        "Architectures": [
+          "arm64"
+        ],
+        "Environment": {
+          "Variables": {
+            "DATABASE_URL": "postgresql://neondb_owner:npg_Bm0pKlcyP7Wv@ep-small-pine-ad95pm8d-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require",
+            "JWT_SECRET": "o8v4um84eyv5a485wm8pcw4vway8mbawm48m4wvm4",
+            "OPENAI_API_KEY": "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",
+            "BUCKET_NAME": {
+              "Ref": "UploadsBucket"
+            },
+            "MEALS_QUEUE": {
+              "Ref": "MealsQueue"
+            }
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "SignupLogGroup"
+      ]
+    },
+    "MeLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "serverless-framework-deployments-us-east-1-6036bb93-3f12",
+          "S3Key": "serverless/foodiary-api/dev/1753055666708-2025-07-20T23:54:26.708Z/foodiary-api-me.zip"
+        },
+        "Handler": "src/functions/me.handler",
+        "Runtime": "nodejs22.x",
+        "FunctionName": "foodiary-api-dev-me",
+        "MemorySize": 1024,
+        "Timeout": 6,
+        "Architectures": [
+          "arm64"
+        ],
+        "Environment": {
+          "Variables": {
+            "DATABASE_URL": "postgresql://neondb_owner:npg_Bm0pKlcyP7Wv@ep-small-pine-ad95pm8d-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require",
+            "JWT_SECRET": "o8v4um84eyv5a485wm8pcw4vway8mbawm48m4wvm4",
+            "OPENAI_API_KEY": "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",
+            "BUCKET_NAME": {
+              "Ref": "UploadsBucket"
+            },
+            "MEALS_QUEUE": {
+              "Ref": "MealsQueue"
+            }
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "MeLogGroup"
+      ]
+    },
+    "CreateMealLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "serverless-framework-deployments-us-east-1-6036bb93-3f12",
+          "S3Key": "serverless/foodiary-api/dev/1753055666708-2025-07-20T23:54:26.708Z/foodiary-api-createMeal.zip"
+        },
+        "Handler": "src/functions/createMeal.handler",
+        "Runtime": "nodejs22.x",
+        "FunctionName": "foodiary-api-dev-createMeal",
+        "MemorySize": 1024,
+        "Timeout": 6,
+        "Architectures": [
+          "arm64"
+        ],
+        "Environment": {
+          "Variables": {
+            "DATABASE_URL": "postgresql://neondb_owner:npg_Bm0pKlcyP7Wv@ep-small-pine-ad95pm8d-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require",
+            "JWT_SECRET": "o8v4um84eyv5a485wm8pcw4vway8mbawm48m4wvm4",
+            "OPENAI_API_KEY": "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",
+            "BUCKET_NAME": {
+              "Ref": "UploadsBucket"
+            },
+            "MEALS_QUEUE": {
+              "Ref": "MealsQueue"
+            }
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "CreateMealLogGroup"
+      ]
+    },
+    "ListMealsLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "serverless-framework-deployments-us-east-1-6036bb93-3f12",
+          "S3Key": "serverless/foodiary-api/dev/1753055666708-2025-07-20T23:54:26.708Z/foodiary-api-listMeals.zip"
+        },
+        "Handler": "src/functions/listMeals.handler",
+        "Runtime": "nodejs22.x",
+        "FunctionName": "foodiary-api-dev-listMeals",
+        "MemorySize": 1024,
+        "Timeout": 6,
+        "Architectures": [
+          "arm64"
+        ],
+        "Environment": {
+          "Variables": {
+            "DATABASE_URL": "postgresql://neondb_owner:npg_Bm0pKlcyP7Wv@ep-small-pine-ad95pm8d-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require",
+            "JWT_SECRET": "o8v4um84eyv5a485wm8pcw4vway8mbawm48m4wvm4",
+            "OPENAI_API_KEY": "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",
+            "BUCKET_NAME": {
+              "Ref": "UploadsBucket"
+            },
+            "MEALS_QUEUE": {
+              "Ref": "MealsQueue"
+            }
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "ListMealsLogGroup"
+      ]
+    },
+    "GetMealByIdLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "serverless-framework-deployments-us-east-1-6036bb93-3f12",
+          "S3Key": "serverless/foodiary-api/dev/1753055666708-2025-07-20T23:54:26.708Z/foodiary-api-getMealById.zip"
+        },
+        "Handler": "src/functions/getMealById.handler",
+        "Runtime": "nodejs22.x",
+        "FunctionName": "foodiary-api-dev-getMealById",
+        "MemorySize": 1024,
+        "Timeout": 6,
+        "Architectures": [
+          "arm64"
+        ],
+        "Environment": {
+          "Variables": {
+            "DATABASE_URL": "postgresql://neondb_owner:npg_Bm0pKlcyP7Wv@ep-small-pine-ad95pm8d-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require",
+            "JWT_SECRET": "o8v4um84eyv5a485wm8pcw4vway8mbawm48m4wvm4",
+            "OPENAI_API_KEY": "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",
+            "BUCKET_NAME": {
+              "Ref": "UploadsBucket"
+            },
+            "MEALS_QUEUE": {
+              "Ref": "MealsQueue"
+            }
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "GetMealByIdLogGroup"
+      ]
+    },
+    "FileUploadedEventLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "serverless-framework-deployments-us-east-1-6036bb93-3f12",
+          "S3Key": "serverless/foodiary-api/dev/1753055666708-2025-07-20T23:54:26.708Z/foodiary-api-fileUploadedEvent.zip"
+        },
+        "Handler": "src/functions/fileUploadedEvent.handler",
+        "Runtime": "nodejs22.x",
+        "FunctionName": "foodiary-api-dev-fileUploadedEvent",
+        "MemorySize": 1024,
+        "Timeout": 6,
+        "Architectures": [
+          "arm64"
+        ],
+        "Environment": {
+          "Variables": {
+            "DATABASE_URL": "postgresql://neondb_owner:npg_Bm0pKlcyP7Wv@ep-small-pine-ad95pm8d-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require",
+            "JWT_SECRET": "o8v4um84eyv5a485wm8pcw4vway8mbawm48m4wvm4",
+            "OPENAI_API_KEY": "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",
+            "BUCKET_NAME": {
+              "Ref": "UploadsBucket"
+            },
+            "MEALS_QUEUE": {
+              "Ref": "MealsQueue"
+            }
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "FileUploadedEventLogGroup"
+      ]
+    },
+    "ProcessMealLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "serverless-framework-deployments-us-east-1-6036bb93-3f12",
+          "S3Key": "serverless/foodiary-api/dev/1753055666708-2025-07-20T23:54:26.708Z/foodiary-api-processMeal.zip"
+        },
+        "Handler": "src/functions/processMeal.handler",
+        "Runtime": "nodejs22.x",
+        "FunctionName": "foodiary-api-dev-processMeal",
+        "MemorySize": 1024,
+        "Timeout": 6,
+        "Architectures": [
+          "arm64"
+        ],
+        "Environment": {
+          "Variables": {
+            "DATABASE_URL": "postgresql://neondb_owner:npg_Bm0pKlcyP7Wv@ep-small-pine-ad95pm8d-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require",
+            "JWT_SECRET": "o8v4um84eyv5a485wm8pcw4vway8mbawm48m4wvm4",
+            "OPENAI_API_KEY": "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",
+            "BUCKET_NAME": {
+              "Ref": "UploadsBucket"
+            },
+            "MEALS_QUEUE": {
+              "Ref": "MealsQueue"
+            }
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "ProcessMealLogGroup"
+      ]
+    },
+    "FileUploadedEventLambdaVersionzt0uPYavt2Vh843FsF6BA0qtMNMdhXHN9orvfiDVE": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "FileUploadedEventLambdaFunction"
+        },
+        "CodeSha256": "vZzLiig9/5rGrHytGXozqgEV1ldCONqZuxJ6g5gnwWw="
+      }
+    },
+    "MeLambdaVersionn2sDJLMnXADFCsyKluqs8iiWzzqB86NSpcH8JAHIbY": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "MeLambdaFunction"
+        },
+        "CodeSha256": "oI3J1QJHWRgE5O3xQHX98TBX23sQTehfhv6MlucTPq4="
+      }
+    },
+    "ProcessMealLambdaVersionmnOdwkqiFznu4jhvf3ZkUPY2mEiiDw8raNR8fpUTa8": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "ProcessMealLambdaFunction"
+        },
+        "CodeSha256": "XD8RjzQVAF6RjbzpVzWa65nPEpsLHU5JQAH/NJ511GM="
+      }
+    },
+    "SigninLambdaVersionyEBMtd3KuT6xSt4yNwxirwG78SfEafm7e5nX1sV6I": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "SigninLambdaFunction"
+        },
+        "CodeSha256": "rfQs09/K5+9MunDkXP8K21jL3e9BAh/4QCd1ztH3X/k="
+      }
+    },
+    "CreateMealLambdaVersionv2xeoIgCQTCMpzYt4xLTJoVvqXE8sGw37AjElGHhM1A": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "CreateMealLambdaFunction"
+        },
+        "CodeSha256": "+5ffKIXmMEqPOFiCbBLawseicZmTdUh3lA0FPlAyI4U="
+      }
+    },
+    "SignupLambdaVersionzEuAxK9WVPgxlgMgsqZExEeGHSHJHlxOykUGWxnZ5vw": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "SignupLambdaFunction"
+        },
+        "CodeSha256": "zxdHtEmXrbGvnstxNKsZcBemI2LLgATarfYe59v5efI="
+      }
+    },
+    "ListMealsLambdaVersionLR4hglfnJYOIkus3QtkgW7IpyFmSHqG4DLcGtkhQ": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "ListMealsLambdaFunction"
+        },
+        "CodeSha256": "gDGJIMYfLPVqhsYpnA7PPgb/bUyFJ7OTveJiXaB44DI="
+      }
+    },
+    "GetMealByIdLambdaVersionCNdJyYYvvZmJxEyGvgAHAhymopAMpRu54f9ntft65s": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "GetMealByIdLambdaFunction"
+        },
+        "CodeSha256": "vU8WNTE9vHBRjxXrvI4/EeaCE2FydisjOqVffX+NvJs="
+      }
+    },
+    "FileUploadedEventCustomS31": {
+      "Type": "Custom::S3",
+      "Version": "1.0",
+      "DependsOn": [
+        "FileUploadedEventLambdaFunction",
+        "CustomDashresourceDashexistingDashs3LambdaFunction"
+      ],
+      "Properties": {
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomDashresourceDashexistingDashs3LambdaFunction",
+            "Arn"
+          ]
+        },
+        "FunctionName": "foodiary-api-dev-fileUploadedEvent",
+        "BucketName": {
+          "Ref": "UploadsBucket"
+        },
+        "BucketConfigs": [
+          {
+            "Event": "s3:ObjectCreated:*",
+            "Rules": []
+          }
+        ],
+        "ForceDeploy": 1753055666714
+      }
+    },
+    "IamRoleCustomResourcesLambdaExecution": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "lambda.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": {
+              "Fn::Join": [
+                "-",
+                [
+                  "dev",
+                  "foodiary-api",
+                  "custom-resources-lambda"
+                ]
+              ]
+            },
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:CreateLogGroup",
+                    "logs:TagResource"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/foodiary-api-dev*:*"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/foodiary-api-dev*:*:*"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Resource": {
+                    "Fn::Join": [
+                      ":",
+                      [
+                        "arn",
+                        {
+                          "Ref": "AWS::Partition"
+                        },
+                        "s3",
+                        "",
+                        "",
+                        {
+                          "Ref": "UploadsBucket"
+                        }
+                      ]
+                    ]
+                  },
+                  "Action": [
+                    "s3:PutBucketNotification",
+                    "s3:GetBucketNotification"
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Resource": {
+                    "Fn::Join": [
+                      ":",
+                      [
+                        "arn",
+                        {
+                          "Ref": "AWS::Partition"
+                        },
+                        "lambda",
+                        {
+                          "Ref": "AWS::Region"
+                        },
+                        {
+                          "Ref": "AWS::AccountId"
+                        },
+                        "function",
+                        "*"
+                      ]
+                    ]
+                  },
+                  "Action": [
+                    "lambda:AddPermission",
+                    "lambda:RemovePermission"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "CustomDashresourceDashexistingDashs3LambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "serverless-framework-deployments-us-east-1-6036bb93-3f12",
+          "S3Key": "serverless/foodiary-api/dev/1753055666708-2025-07-20T23:54:26.708Z/custom-resources.zip"
+        },
+        "FunctionName": "foodiary-api-dev-custom-resource-existing-s3",
+        "Handler": "s3/handler.handler",
+        "MemorySize": 1024,
+        "Runtime": "nodejs20.x",
+        "Timeout": 180,
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleCustomResourcesLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "IamRoleCustomResourcesLambdaExecution",
+        "CustomDashresourceDashexistingDashs3LogGroup"
+      ]
+    },
+    "CustomDashresourceDashexistingDashs3LogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/foodiary-api-dev-custom-resource-existing-s3"
+      }
+    },
+    "ProcessMealEventSourceMappingSQSMealsQueue": {
+      "Type": "AWS::Lambda::EventSourceMapping",
+      "DependsOn": [
+        "IamRoleLambdaExecution"
+      ],
+      "Properties": {
+        "BatchSize": 1,
+        "EventSourceArn": {
+          "Fn::GetAtt": [
+            "MealsQueue",
+            "Arn"
+          ]
+        },
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "ProcessMealLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Enabled": true
+      }
+    },
+    "HttpApi": {
+      "Type": "AWS::ApiGatewayV2::Api",
+      "Properties": {
+        "Name": "dev-foodiary-api",
+        "ProtocolType": "HTTP"
+      }
+    },
+    "HttpApiStage": {
+      "Type": "AWS::ApiGatewayV2::Stage",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApi"
+        },
+        "StageName": "$default",
+        "AutoDeploy": true,
+        "DefaultRouteSettings": {
+          "DetailedMetricsEnabled": false
+        }
+      }
+    },
+    "SigninLambdaPermissionHttpApi": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "SigninLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition"
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region"
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId"
+              },
+              ":",
+              {
+                "Ref": "HttpApi"
+              },
+              "/*"
+            ]
+          ]
+        }
+      }
+    },
+    "HttpApiIntegrationSignin": {
+      "Type": "AWS::ApiGatewayV2::Integration",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApi"
+        },
+        "IntegrationType": "AWS_PROXY",
+        "IntegrationUri": {
+          "Fn::GetAtt": [
+            "SigninLambdaFunction",
+            "Arn"
+          ]
+        },
+        "PayloadFormatVersion": "2.0",
+        "TimeoutInMillis": 30000
+      }
+    },
+    "HttpApiRoutePostSignin": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApi"
+        },
+        "RouteKey": "POST /signin",
+        "Target": {
+          "Fn::Join": [
+            "/",
+            [
+              "integrations",
+              {
+                "Ref": "HttpApiIntegrationSignin"
+              }
+            ]
+          ]
+        }
+      },
+      "DependsOn": "HttpApiIntegrationSignin"
+    },
+    "SignupLambdaPermissionHttpApi": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "SignupLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition"
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region"
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId"
+              },
+              ":",
+              {
+                "Ref": "HttpApi"
+              },
+              "/*"
+            ]
+          ]
+        }
+      }
+    },
+    "HttpApiIntegrationSignup": {
+      "Type": "AWS::ApiGatewayV2::Integration",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApi"
+        },
+        "IntegrationType": "AWS_PROXY",
+        "IntegrationUri": {
+          "Fn::GetAtt": [
+            "SignupLambdaFunction",
+            "Arn"
+          ]
+        },
+        "PayloadFormatVersion": "2.0",
+        "TimeoutInMillis": 30000
+      }
+    },
+    "HttpApiRoutePostSignup": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApi"
+        },
+        "RouteKey": "POST /signup",
+        "Target": {
+          "Fn::Join": [
+            "/",
+            [
+              "integrations",
+              {
+                "Ref": "HttpApiIntegrationSignup"
+              }
+            ]
+          ]
+        }
+      },
+      "DependsOn": "HttpApiIntegrationSignup"
+    },
+    "MeLambdaPermissionHttpApi": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "MeLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition"
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region"
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId"
+              },
+              ":",
+              {
+                "Ref": "HttpApi"
+              },
+              "/*"
+            ]
+          ]
+        }
+      }
+    },
+    "HttpApiIntegrationMe": {
+      "Type": "AWS::ApiGatewayV2::Integration",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApi"
+        },
+        "IntegrationType": "AWS_PROXY",
+        "IntegrationUri": {
+          "Fn::GetAtt": [
+            "MeLambdaFunction",
+            "Arn"
+          ]
+        },
+        "PayloadFormatVersion": "2.0",
+        "TimeoutInMillis": 30000
+      }
+    },
+    "HttpApiRouteGetMe": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApi"
+        },
+        "RouteKey": "GET /me",
+        "Target": {
+          "Fn::Join": [
+            "/",
+            [
+              "integrations",
+              {
+                "Ref": "HttpApiIntegrationMe"
+              }
+            ]
+          ]
+        }
+      },
+      "DependsOn": "HttpApiIntegrationMe"
+    },
+    "CreateMealLambdaPermissionHttpApi": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "CreateMealLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition"
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region"
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId"
+              },
+              ":",
+              {
+                "Ref": "HttpApi"
+              },
+              "/*"
+            ]
+          ]
+        }
+      }
+    },
+    "HttpApiIntegrationCreateMeal": {
+      "Type": "AWS::ApiGatewayV2::Integration",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApi"
+        },
+        "IntegrationType": "AWS_PROXY",
+        "IntegrationUri": {
+          "Fn::GetAtt": [
+            "CreateMealLambdaFunction",
+            "Arn"
+          ]
+        },
+        "PayloadFormatVersion": "2.0",
+        "TimeoutInMillis": 30000
+      }
+    },
+    "HttpApiRoutePostMeals": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApi"
+        },
+        "RouteKey": "POST /meals",
+        "Target": {
+          "Fn::Join": [
+            "/",
+            [
+              "integrations",
+              {
+                "Ref": "HttpApiIntegrationCreateMeal"
+              }
+            ]
+          ]
+        }
+      },
+      "DependsOn": "HttpApiIntegrationCreateMeal"
+    },
+    "ListMealsLambdaPermissionHttpApi": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "ListMealsLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition"
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region"
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId"
+              },
+              ":",
+              {
+                "Ref": "HttpApi"
+              },
+              "/*"
+            ]
+          ]
+        }
+      }
+    },
+    "HttpApiIntegrationListMeals": {
+      "Type": "AWS::ApiGatewayV2::Integration",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApi"
+        },
+        "IntegrationType": "AWS_PROXY",
+        "IntegrationUri": {
+          "Fn::GetAtt": [
+            "ListMealsLambdaFunction",
+            "Arn"
+          ]
+        },
+        "PayloadFormatVersion": "2.0",
+        "TimeoutInMillis": 30000
+      }
+    },
+    "HttpApiRouteGetMeals": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApi"
+        },
+        "RouteKey": "GET /meals",
+        "Target": {
+          "Fn::Join": [
+            "/",
+            [
+              "integrations",
+              {
+                "Ref": "HttpApiIntegrationListMeals"
+              }
+            ]
+          ]
+        }
+      },
+      "DependsOn": "HttpApiIntegrationListMeals"
+    },
+    "GetMealByIdLambdaPermissionHttpApi": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "GetMealByIdLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition"
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region"
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId"
+              },
+              ":",
+              {
+                "Ref": "HttpApi"
+              },
+              "/*"
+            ]
+          ]
+        }
+      }
+    },
+    "HttpApiIntegrationGetMealById": {
+      "Type": "AWS::ApiGatewayV2::Integration",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApi"
+        },
+        "IntegrationType": "AWS_PROXY",
+        "IntegrationUri": {
+          "Fn::GetAtt": [
+            "GetMealByIdLambdaFunction",
+            "Arn"
+          ]
+        },
+        "PayloadFormatVersion": "2.0",
+        "TimeoutInMillis": 30000
+      }
+    },
+    "HttpApiRouteGetMealsMealidVar": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApi"
+        },
+        "RouteKey": "GET /meals/{mealId}",
+        "Target": {
+          "Fn::Join": [
+            "/",
+            [
+              "integrations",
+              {
+                "Ref": "HttpApiIntegrationGetMealById"
+              }
+            ]
+          ]
+        }
+      },
+      "DependsOn": "HttpApiIntegrationGetMealById"
+    },
+    "UploadsBucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": "foodiary-uploads-juones"
+      }
+    },
+    "MealsQueue": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "QueueName": "meals-queue",
+        "VisibilityTimeout": 60,
+        "RedrivePolicy": {
+          "maxReceiveCount": 1,
+          "deadLetterTargetArn": {
+            "Fn::GetAtt": [
+              "MealsDLQ",
+              "Arn"
+            ]
+          }
+        }
+      }
+    },
+    "MealsDLQ": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "QueueName": "meals-queue-dlq"
+      }
+    }
+  },
+  "Outputs": {
+    "ServerlessDeploymentBucketName": {
+      "Value": "serverless-framework-deployments-us-east-1-6036bb93-3f12",
+      "Export": {
+        "Name": "sls-foodiary-api-dev-ServerlessDeploymentBucketName"
+      }
+    },
+    "FileUploadedEventLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "FileUploadedEventLambdaVersionzt0uPYavt2Vh843FsF6BA0qtMNMdhXHN9orvfiDVE"
+      },
+      "Export": {
+        "Name": "sls-foodiary-api-dev-FileUploadedEventLambdaFunctionQualifiedArn"
+      }
+    },
+    "MeLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "MeLambdaVersionn2sDJLMnXADFCsyKluqs8iiWzzqB86NSpcH8JAHIbY"
+      },
+      "Export": {
+        "Name": "sls-foodiary-api-dev-MeLambdaFunctionQualifiedArn"
+      }
+    },
+    "ProcessMealLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "ProcessMealLambdaVersionmnOdwkqiFznu4jhvf3ZkUPY2mEiiDw8raNR8fpUTa8"
+      },
+      "Export": {
+        "Name": "sls-foodiary-api-dev-ProcessMealLambdaFunctionQualifiedArn"
+      }
+    },
+    "SigninLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "SigninLambdaVersionyEBMtd3KuT6xSt4yNwxirwG78SfEafm7e5nX1sV6I"
+      },
+      "Export": {
+        "Name": "sls-foodiary-api-dev-SigninLambdaFunctionQualifiedArn"
+      }
+    },
+    "CreateMealLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "CreateMealLambdaVersionv2xeoIgCQTCMpzYt4xLTJoVvqXE8sGw37AjElGHhM1A"
+      },
+      "Export": {
+        "Name": "sls-foodiary-api-dev-CreateMealLambdaFunctionQualifiedArn"
+      }
+    },
+    "SignupLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "SignupLambdaVersionzEuAxK9WVPgxlgMgsqZExEeGHSHJHlxOykUGWxnZ5vw"
+      },
+      "Export": {
+        "Name": "sls-foodiary-api-dev-SignupLambdaFunctionQualifiedArn"
+      }
+    },
+    "ListMealsLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "ListMealsLambdaVersionLR4hglfnJYOIkus3QtkgW7IpyFmSHqG4DLcGtkhQ"
+      },
+      "Export": {
+        "Name": "sls-foodiary-api-dev-ListMealsLambdaFunctionQualifiedArn"
+      }
+    },
+    "GetMealByIdLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "GetMealByIdLambdaVersionCNdJyYYvvZmJxEyGvgAHAhymopAMpRu54f9ntft65s"
+      },
+      "Export": {
+        "Name": "sls-foodiary-api-dev-GetMealByIdLambdaFunctionQualifiedArn"
+      }
+    },
+    "HttpApiId": {
+      "Description": "Id of the HTTP API",
+      "Value": {
+        "Ref": "HttpApi"
+      },
+      "Export": {
+        "Name": "sls-foodiary-api-dev-HttpApiId"
+      }
+    },
+    "HttpApiUrl": {
+      "Description": "URL of the HTTP API",
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "https://",
+            {
+              "Ref": "HttpApi"
+            },
+            ".execute-api.",
+            {
+              "Ref": "AWS::Region"
+            },
+            ".",
+            {
+              "Ref": "AWS::URLSuffix"
+            }
+          ]
+        ]
+      },
+      "Export": {
+        "Name": "sls-foodiary-api-dev-HttpApiUrl"
+      }
+    }
+  }
+}
